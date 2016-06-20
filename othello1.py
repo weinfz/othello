@@ -8,12 +8,18 @@ Created on Sat Jun 18 07:40:22 2016
 import random
 import sys
 import numpy as np
+
 import random
 import pandas as pd
 import copy
-from sklearn.externals import joblib   
+from sklearn.externals import joblib 
+  
+def weighted_random_choice(choices,weights):
+    weights = [x/sum(weights) for x in weights] 
+    cs = np.cumsum(weights) #An array of the weights, cumulatively summed.
+    idx = sum(cs < random.random()) #Find the index of the first weight over a random value.
+    return choices[idx]
     
-
 def _isValid(board,player,move):
     #print(move)
     if board[tuple(move)] != 0:
@@ -96,10 +102,15 @@ class Player(object):
             return self.probs.index(max(self.probs))
         except Exception:
             import pdb; pdb.set_trace()
+            
+    def make_good_move(self,states):
+        self._make_preds(states)
+        return weighted_random_choice(states,self.probs)
         
     def make_move(self,states):
         self._make_preds(states)
-        return self._choose_highest()
+        #import pdb; pdb.set_trace()
+        return states[self.probs.index(max(self.probs))]
     
                
 class RandomPlayer(Player):
@@ -185,8 +196,9 @@ class Reversi(object):
         if boards == None:
             #print('game already_over')
             return
-        board_index = self.player[player].make_move(boards)
-        picked_board = boards[board_index]
+        picked_board = self.player[player].make_good_move(boards)
+        #picked_board = boards[board_index]
+        #import pdb; pdb.set_trace()
         self.boards.append(picked_board.flatten())
         self.board = picked_board
 
@@ -214,7 +226,8 @@ class Reversi(object):
                 raise Exception('over max turns')
 
 def addData(number_of_games,file):
-    player1 = RandomPlayer(1)
+    player1 = Player(1)
+    player1.load_model_from_pickel('rf.pkl')
     player2 = Player(-1)
     player2.load_model_from_pickel('rf.pkl')
     headers = []
@@ -241,7 +254,8 @@ def addData(number_of_games,file):
     
     
 if __name__ == "__main__":
-    player1 = RandomPlayer(1)
+    player1 = Player(-1)
+    player1.load_model_from_pickel('rf.pkl')
     player2 = Player(-1)
     player2.load_model_from_pickel('rf.pkl')
 #    board = Reversi(player1, player2)  
