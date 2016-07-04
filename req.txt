@@ -13,9 +13,6 @@ Bottleneck==1.0.0
 cffi==1.2.1
 clyent==1.2.0
 colorama==0.3.6
-conda==3.19.1
-conda-build==1.19.0
-conda-env==2.4.5
 configobj==5.0.6
 cryptography==0.9.3
 cycler==0.9.0
@@ -51,7 +48,6 @@ MarkupSafe==0.23
 matplotlib==1.5.1
 mistune==0.7.1
 multipledispatch==0.4.8
--e git+https://github.com/seemethere/nba_py@6fd1b835826466f0ba054eaa8ee1e1f55e8599c2#egg=nba_py
 nbconvert==4.1.0
 nbformat==4.0.1
 networkx==1.11

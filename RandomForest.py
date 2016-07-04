@@ -28,7 +28,7 @@ data.drop(['first','second'],axis=1,inplace=True)
 X_train, X_test, y_train, y_test = train_test_split(data, first_win, test_size=0.33, random_state=42)
 
 
-rf = RandomForestClassifier(n_estimators=500, max_features=None, n_jobs=-1)
+rf = RandomForestClassifier(n_estimators=500, max_features=20, n_jobs=-1)
 rf.fit(X_train, y_train)
 pred = rf.predict_proba(X_test)
 if pred.shape[1] == 3:
@@ -38,4 +38,5 @@ if pred.shape[1] == 3:
 #rf.predict(test_X)
 y_test[y_test==0] = -1
 print(roc_auc_score(y_test,pred[:,1]))
-joblib.dump(rf, 'rf.pkl',compress=True) 
+joblib.dump(rf, 'rf.pkl',compress=True)
+print('done') 
