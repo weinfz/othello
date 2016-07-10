@@ -8,7 +8,7 @@ Created on Sat Jun 18 07:40:22 2016
 import random
 import sys
 import numpy as np
-
+from multiprocessing import Pool
 import random
 import pandas as pd
 import copy
@@ -103,7 +103,7 @@ class Player(object):
         except Exception:
             import pdb; pdb.set_trace()
             
-    def make_good_move(self,states):
+    def make_good_move(self, states):
         self._make_preds(states)
         return weighted_random_choice(states,self.probs)
         
@@ -116,12 +116,7 @@ class Player(object):
 class RandomPlayer(Player):
     def make_move(self,states):
         return random.randint(0,(len(states)-1))
-            
-        
-        
-        
-        
-        
+                    
         
 
 
@@ -140,16 +135,19 @@ def _findMoves(board,player):
     return valid_moves
         
 def _get_boards(board, moves, player):
+    
     if moves == None:
         return None
     boards = []
     for move in moves:
-        new_board = copy.deepcopy(board)
-        for m in move:
-            new_board[m] = player
-            boards.append(new_board)
+        new_board = _apply_move(np.copy(board), move, player)
+        boards.append(new_board)
     return boards
       
+def _apply_move(board, move, player):
+    for m in move:
+        board[m] = player
+    return board
 
 class Reversi(object):
     def __init__(self,positive,negative):
@@ -215,7 +213,8 @@ class Reversi(object):
                 'states':self.boards}
                 
     def play_game(self):
-        for i in range(1000):
+        for i in range(100):
+            #import pdb; pdb.set_trace()
             self._make_move(self.possession_arrow)
             self.possession_arrow *= -1
             #import pdb; pdb.set_trace()
@@ -250,35 +249,17 @@ def addData(number_of_games,file):
         with open ('win_loss.csv', 'a') as f:
             win_loss.to_csv(f,index=False, header=False)
 
-        
-    
+
+def sim(x):      
+    file = 'data.csv'
+    addData(x,file)
     
 if __name__ == "__main__":
-    player1 = Player(-1)
-    player1.load_model_from_pickel('rf.pkl')
-    player2 = Player(-1)
-    player2.load_model_from_pickel('rf.pkl')
-#    board = Reversi(player1, player2)  
-#    board1 = board.board
-#    move1 = (3,3)    
-#    
-#    player = -1
-#    valid = _isValid(board1,player,move1)
-#    moves = _findMoves(board1,1)
-#    print(board.board)
-#    board._make_move(-1)
-#    print(board.board)
-#    board._make_move(-1)
-#    print(board.board)
-#    board._make_move(-1)
-#    board._make_move(-1)
-
-    game = Reversi(player1, player2)
-    results = game.play_game()
-    file = 'data.csv'
-    addData(100,file)
-    
-
+    sim(1)
+    pool = Pool()
+    numbers_of_sims = [1 for x in range(10)
+    result_final = pool.map(sim, numbers_of_sims)
+    pool.close()
 
 
 
