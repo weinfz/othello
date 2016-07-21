@@ -6,6 +6,7 @@ Created on Sat Jun 18 16:33:51 2016
 """
 
 import pandas as pd 
+    
 import numpy as np
 import sklearn.ensemble
 from sklearn.cross_validation import train_test_split, cross_val_score
@@ -19,7 +20,7 @@ for x in range(8):
         headers.append(str(x)+str(y))
 headers.append('first')
 headers.append('second')
-data = pd.read_csv('data.csv',header=None,names=headers)
+data = pd.read_csv('data1.csv',header=None,names=headers)
 first_win = (data['first'] > data['second']).astype(int)
 first_win.loc[data['first'] < data['second']] = -1
 
@@ -40,9 +41,13 @@ if pred.shape[1] == 3:
 #rf.predict(test_X)
 y_test[y_test==0] = -1
 print(roc_auc_score(y_test,pred[:,1]))
-joblib.dump(rf, 'rf.pkl',compress=True)
+joblib.dump(rf, 'rf1.pkl',compress=True)
 print('done') 
 
 importances = rf.feature_importances_
 importances = importances.reshape([8,8])
+
+
+
+
 
