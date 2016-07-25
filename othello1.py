@@ -70,6 +70,9 @@ def _isValid(board,player,move):
     return to_flip
 
 class Player(object):
+    def __str__(self):
+        return 'goodRF'
+        
     def __init__(self, player):
         self.player = player
         
@@ -115,7 +118,10 @@ class Player(object):
         #import pdb; pdb.set_trace()
         return states[self.probs.index(max(self.probs))]
         
+        
 class BestPlayer(Player):
+    def __str__(self):
+        return 'BestRf'
     def make_good_move(self, states,board=None, moves=None):
         self._make_preds(states)
         #import pdb; pdb.set_trace()
@@ -123,12 +129,16 @@ class BestPlayer(Player):
   
              
 class RandomPlayer(Player):
+    def __str__(self):
+        return 'Random'
+        
     def make_move(self,states,board=None, moves=None):
         return random.randint(0,(len(states)-1))
     
     def make_good_move(self,states,board=None, moves=None):
         choice = self.make_move(states)
-        return choice
+        return states[choice]
+ 
  
 def _format_board(board,moves):
     board = board.copy().astype(str)
@@ -154,6 +164,9 @@ def _to_index(spot):
     return 26*n_letters+number
        
 class HumanPlayer(Player):
+    def __str__(self):
+        return 'Human'
+        
     def make_move(self, states,board=None, moves=None):
         side = 'O' if self.player == -1 else 'X'
         print('ypu are {}'.format(side))
@@ -268,7 +281,7 @@ class Reversi(object):
         
         
     def _game_over(self):
-
+        #import pdb; pdb.set_trace()
         #print('game over')
         players, new_board = np.unique(self.board.flatten(),return_inverse=True)
         score = np.bincount(new_board)
@@ -278,7 +291,7 @@ class Reversi(object):
                 'states':self.boards}
                 
     def play_game(self):
-        for i in range(100):
+        for i in range(150):
             #import pdb; pdb.set_trace()
             self.make_move(self.possession_arrow)
             self.possession_arrow *= -1
@@ -288,21 +301,39 @@ class Reversi(object):
                 return self.results
             if i>64:
                 raise Exception('over max turns')
+def random_player():
+    choices = ['goodRF','bestRF','randomP']
+    weights = [.5,.4,.1]
+    p = weighted_random_choice(choices,weights)
+    if p == 'goodRF':
+        goodRF = Player(1)
+        goodRF.load_model_from_pickel('rf1.pkl')
+        return goodRF
+    elif p == 'bestRF':
+        bestRF = BestPlayer(-1)
+        bestRF.load_model_from_pickel('rf1.pkl')
+        return bestRF
+    elif p == 'randomP':
+        randomP = RandomPlayer(1)
+        return randomP
 
+    
 def addData(number_of_games,file):
-    player1 = Player(1)
-    player1.load_model_from_pickel('rf1.pkl')
-    player2 = Player(-1)
-    player2.load_model_from_pickel('rf1.pkl')
     headers = []
     for x in range(8):
         for y in range(8):
             headers.append(str(x)+str(y))
     for i in range(number_of_games):
+
+        player1 = random_player()
+        player2 = random_player()
+        
         if random.random() > .5:
             game = Reversi(player1.change_player(1), player2.change_player(-1))
+            players = [str(player1),str(player2)]
         else:
             game = Reversi(player2.change_player(1), player1.change_player(-1))
+            players = [str(player2),str(player1)]
         results = game.play_game()
         table = pd.DataFrame(results['states'],columns=headers)
         table['first'] = results['score'][1] 
@@ -312,10 +343,16 @@ def addData(number_of_games,file):
         win_loss = table.loc[0,['first','second']]
         win_loss['first_win'] = win_loss['first'] > win_loss['second']
         win_loss = win_loss.to_frame().T
+        if win_loss['first_win'].iat[0] == 1:
+            win_loss['winner'] = players[0]
+            win_loss['loser'] = players[1]
+        if win_loss['first_win'].iat[0] == 0:
+            win_loss['winner'] = players[1]
+            win_loss['loser'] = players[0]
         with open('data1.csv', 'a') as f:
             
             table.to_csv(f,index=False,header=False)
-        with open ('win_loss1.csv', 'a') as f:
+        with open ('win_loss2.csv', 'a') as f:
             win_loss.to_csv(f,index=False, header=False)
 
 
@@ -333,20 +370,28 @@ def PlayRF():
     player2 = HumanPlayer(-1)
     if random.random() > .5:
         game = Reversi(player1.change_player(1), player2.change_player(-1))
+        players = [str(player1),str(player2)]
     else:
         game = Reversi(player2.change_player(1), player1.change_player(-1))
+        players = [str(player2),str(player1)]
     results = game.play_game()
-    print(results)
+    #print(results)
     table = pd.DataFrame(results['states'],columns=headers)
     table['first'] = results['score'][1] 
     table['second'] = results['score'][-1] 
     win_loss = table.loc[0,['first','second']]
     win_loss['first_win'] = win_loss['first'] > win_loss['second']
     win_loss = win_loss.to_frame().T
+    if win_loss['first_win'].iat[0] == 1:
+        win_loss['winner'] = players[0]
+        win_loss['loser'] = players[1]
+    if win_loss['first_win'].iat[0] == 0:
+        win_loss['winner'] = players[1]
+        win_loss['loser'] = players[0]
     with open('data1.csv', 'a') as f:
         
         table.to_csv(f,index=False,header=False)
-    with open ('win_loss1.csv', 'a') as f:
+    with open ('win_loss2.csv', 'a') as f:
         win_loss.to_csv(f,index=False, header=False)
     
 def PlayPara(number_workers,number_series):
