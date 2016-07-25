@@ -5,15 +5,13 @@ Created on Sat Jun 18 07:40:22 2016
 @author: weinfz
 """
 
-import random
-import sys
 import numpy as np
 from multiprocessing import Pool
 import random
 import pandas as pd
-import copy
 from sklearn.externals import joblib 
-  
+import click
+
 def weighted_random_choice(choices,weights):
     weights = [x/sum(weights) for x in weights] 
     cs = np.cumsum(weights) 
@@ -74,7 +72,11 @@ def _isValid(board,player,move):
 class Player(object):
     def __init__(self, player):
         self.player = player
-    
+        
+    def change_player(self, player):
+        self.player = player
+        return self
+        
     def load_model(self, model):
         self.model = model
         
@@ -127,14 +129,39 @@ class RandomPlayer(Player):
     def make_good_move(self,states,board=None, moves=None):
         choice = self.make_move(states)
         return choice
-                    
+ 
+def _format_board(board,moves):
+    board = board.copy().astype(str)
+    board[board=='-1'] = 'O'
+    board[board=='1'] = 'X'
+    board[board=='0'] = ' '
+    first = [x[0] for x in moves]
+    for i in range(len(first)):
+        spot = _to_spot(i)
+        move = first[i]
+        board[move] = spot
+    return board
+        
+def _to_spot(index):
+    n_letters = index//26
+    spot = ((n_letters+1) * chr(index+97))
+    return spot
+
+def _to_index(spot):
+    n_letters = len(spot)-1
+    letter = spot[0]
+    number = ord(letter) - 97
+    return 26*n_letters+number
+       
 class HumanPlayer(Player):
     def make_move(self, states,board=None, moves=None):
-        print(board)
-        print(moves)
-        print(states)
+        side = 'O' if self.player == -1 else 'X'
+        print('ypu are {}'.format(side))
+        print(_format_board(board,moves))
+        #print(states)
         print(len(states)-1)
-        choice = input("choose index number of choice: ")
+        choice = input("choose letter of choice: ")
+        choice = _to_index(choice)
         chosen_state = np.copy(states[int(choice)])
         #import pdb; pdb.set_trace()
         return chosen_state
@@ -228,10 +255,10 @@ class Reversi(object):
         moves = self._get_moves(player)
         boards = _get_boards(self.board, moves, player)
         if boards == None:
-            #print('game already_over')
+            #print('game already_over'
             return
-        
         picked_board = self.player[player].make_good_move(boards,self.board,moves)
+
         #import pdb; pdb.set_trace()
         #picked_board = boards[board_index]
         #import pdb; pdb.set_trace()
@@ -273,9 +300,9 @@ def addData(number_of_games,file):
             headers.append(str(x)+str(y))
     for i in range(number_of_games):
         if random.random() > .5:
-            game = Reversi(player1, player2)
+            game = Reversi(player1.change_player(1), player2.change_player(-1))
         else:
-            game = Reversi(player2, player1)
+            game = Reversi(player2.change_player(1), player1.change_player(-1))
         results = game.play_game()
         table = pd.DataFrame(results['states'],columns=headers)
         table['first'] = results['score'][1] 
@@ -305,9 +332,9 @@ def PlayRF():
     player1.load_model_from_pickel('rf.pkl')
     player2 = HumanPlayer(-1)
     if random.random() > .5:
-        game = Reversi(player1, player2)
+        game = Reversi(player1.change_player(1), player2.change_player(-1))
     else:
-        game = Reversi(player2, player1)
+        game = Reversi(player2.change_player(1), player1.change_player(-1))
     results = game.play_game()
     print(results)
     table = pd.DataFrame(results['states'],columns=headers)
@@ -322,19 +349,27 @@ def PlayRF():
     with open ('win_loss1.csv', 'a') as f:
         win_loss.to_csv(f,index=False, header=False)
     
-    
-    
-
 def PlayPara(number_workers,number_series):
     pool = Pool()
     numbers_of_sims = [number_series for x in range(number_workers)]
     result_final = pool.map(sim, numbers_of_sims)
     pool.close()
 
+@click.command()
+@click.option('--s', default=None, help='number of sims')
+@click.option('--p', default=None, help='number of workers')
+def main(s, p):
+    if s==None and p==None:
+        PlayRF()
+    elif p==None and int(s)>0:
+        sim(int(s))
+    elif int(p)>0 and int(s)>0:
+        PlayPara(int(p),int(s))
+
+
+
 if __name__ == "__main__":
-    PlayRF()
-    #sim(1000)
-    #PlayPara(4,100)
+    main()
 
 
 
