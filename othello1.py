@@ -122,6 +122,7 @@ class Player(object):
 class BestPlayer(Player):
     def __str__(self):
         return 'BestRf'
+        
     def make_good_move(self, states,board=None, moves=None):
         self._make_preds(states)
         #import pdb; pdb.set_trace()
@@ -305,6 +306,7 @@ def random_player():
     choices = ['goodRF','bestRF','randomP']
     weights = [.5,.4,.1]
     p = weighted_random_choice(choices,weights)
+    
     if p == 'goodRF':
         goodRF = Player(1)
         goodRF.load_model_from_pickel('rf1.pkl')
