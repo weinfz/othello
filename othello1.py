@@ -117,7 +117,30 @@ class Player(object):
         self._make_preds(states)
         #import pdb; pdb.set_trace()
         return states[self.probs.index(max(self.probs))]
+  
+      
+class MiniMaxPlayer(Player):
+    def __str__(self):
+        return 'MiniMaxRF'
+     
+    def _make_preds(self,states,board=None, moves=None):
+        probs = []
+        for state in states:
+            probs.append(self._make_pred(state))
+        return probs
         
+    def make_good_move(self, states,board=None, moves=None):
+        mins = []
+        check = []
+        for state in states:
+            next_moves = _findMoves(state,self.player)
+            boards = _get_boards(state, next_moves, self.player)
+            probs = self._make_preds(boards)
+            check.append(probs)
+            mins.append(min(probs))
+        #import pdb; pdb.set_trace()
+        return states[mins.index(max(mins))]
+            
         
 class BestPlayer(Player):
     def __str__(self):
@@ -302,6 +325,7 @@ class Reversi(object):
                 return self.results
             if i>64:
                 raise Exception('over max turns')
+                
 def random_player():
     choices = ['goodRF','bestRF','randomP']
     weights = [.5,.4,.1]
@@ -319,6 +343,12 @@ def random_player():
         randomP = RandomPlayer(1)
         return randomP
 
+def make_players():
+    player1 = random_player()
+    player2 = random_player()                
+    if str(player1) == 'BestRf' and str(player2) == 'BestRf':
+        return make_players()
+    return player1, player2
     
 def addData(number_of_games,file):
     headers = []
@@ -326,10 +356,7 @@ def addData(number_of_games,file):
         for y in range(8):
             headers.append(str(x)+str(y))
     for i in range(number_of_games):
-
-        player1 = random_player()
-        player2 = random_player()
-        
+        player1, player2 = make_players()
         if random.random() > .5:
             game = Reversi(player1.change_player(1), player2.change_player(-1))
             players = [str(player1),str(player2)]
@@ -367,8 +394,8 @@ def PlayRF():
     for x in range(8):
         for y in range(8):
             headers.append(str(x)+str(y))
-    player1 = BestPlayer(1)
-    player1.load_model_from_pickel('rf.pkl')
+    player1 = MiniMaxPlayer(1)
+    player1.load_model_from_pickel('rf1.pkl')
     player2 = HumanPlayer(-1)
     if random.random() > .5:
         game = Reversi(player1.change_player(1), player2.change_player(-1))
@@ -396,7 +423,7 @@ def PlayRF():
     with open ('win_loss2.csv', 'a') as f:
         win_loss.to_csv(f,index=False, header=False)
     
-def PlayPara(number_workers,number_series):
+def PlayPara(number_workers, number_series):
     pool = Pool()
     numbers_of_sims = [number_series for x in range(number_workers)]
     result_final = pool.map(sim, numbers_of_sims)
