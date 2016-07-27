@@ -327,8 +327,8 @@ class Reversi(object):
                 raise Exception('over max turns')
                 
 def random_player():
-    choices = ['goodRF','bestRF','randomP']
-    weights = [.5,.4,.1]
+    choices = ['goodRF','bestRF','randomP','MiniMax']
+    weights = [.3,.3,.1,.3]
     p = weighted_random_choice(choices,weights)
     
     if p == 'goodRF':
@@ -342,11 +342,18 @@ def random_player():
     elif p == 'randomP':
         randomP = RandomPlayer(1)
         return randomP
+    elif p == 'MiniMax':
+        minimax = MiniMaxPlayer(1)
+        minimax.load_model_from_pickel('rf1.pkl')
+        return minimax
+        
 
 def make_players():
     player1 = random_player()
     player2 = random_player()                
     if str(player1) == 'BestRf' and str(player2) == 'BestRf':
+        return make_players()
+    if str(player1) == 'MiniMaxRF' and str(player2) == 'MiniMaxRF':
         return make_players()
     return player1, player2
     
