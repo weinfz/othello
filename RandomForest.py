@@ -28,7 +28,7 @@ data.drop(['first','second'],axis=1,inplace=True)
 
 X_train, X_test, y_train, y_test = train_test_split(data, first_win, test_size=0.33, random_state=42)
 
-rf = RandomForestClassifier(n_estimators=1000, n_jobs=-1)
+rf = RandomForestClassifier(n_estimators=500, n_jobs=-1)
 
 weights = [1+(i/len(y_train)) for i in range(len(y_train))]
 rf.fit(X_train, y_train)

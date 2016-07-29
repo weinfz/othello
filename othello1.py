@@ -97,10 +97,15 @@ class Player(object):
             return pred[0][0]
             
     def _make_preds(self,states,board=None, moves=None):
-        probs = []
-        for state in states:
-            probs.append(self._make_pred(state))
-        self.probs = probs
+        states_array = np.array(states)
+        states_array = np.resize(states_array, (3,64))
+        preds = self.model.predict_proba(states_array)
+        if self.player == 1:
+            pred = preds[:,-1]
+            self.probs = pred
+        elif self.player == -1:
+            pred = preds[:,1]
+            self.probs = pred
         
     def _choose_highest(self):
         try:
@@ -124,22 +129,36 @@ class MiniMaxPlayer(Player):
         return 'MiniMaxRF'
      
     def _make_preds(self,states,board=None, moves=None):
-        probs = []
-        for state in states:
-            probs.append(self._make_pred(state))
-        return probs
+        states_array = np.array(states)
+        states_array = np.resize(states_array, (3,64))
+        preds = self.model.predict_proba(states_array)
+        if self.player == 1:
+            pred = preds[:,-1]
+            return pred
+        elif self.player == -1:
+            pred = preds[:,1]
+            return pred
+
         
-    def make_good_move(self, states,board=None, moves=None):
+    def make_good_move(self, states,board, moves=None):
         mins = []
         check = []
         for state in states:
-            next_moves = _findMoves(state,self.player)
-            boards = _get_boards(state, next_moves, self.player)
+            next_moves = _findMoves(state,self.player*-1)
+            if next_moves == []:
+                import pdb; pdb.set_trace()
+                players, new_board = np.unique(state.flatten(),return_inverse=True)
+                score = np.bincount(new_board)
+                results = {players[i]:score[i] for i in range(len(players))}
+                
+            boards = _get_boards(state, next_moves, self.player*-1)
             probs = self._make_preds(boards)
             check.append(probs)
             mins.append(min(probs))
         #import pdb; pdb.set_trace()
         return states[mins.index(max(mins))]
+
+
             
         
 class BestPlayer(Player):
@@ -200,7 +219,6 @@ class HumanPlayer(Player):
         choice = input("choose letter of choice: ")
         choice = _to_index(choice)
         chosen_state = np.copy(states[int(choice)])
-        #import pdb; pdb.set_trace()
         return chosen_state
     
     def make_good_move(self, states,board=None, moves=None):
@@ -224,7 +242,7 @@ def _findMoves(board,player):
         
 def _get_boards(board, moves, player):
     
-    if moves == None:
+    if moves == False:
         return None
     boards = []
     for move in moves:
@@ -290,10 +308,10 @@ class Reversi(object):
             #print('game already ended')
             return 
         moves = self._get_moves(player)
-        boards = _get_boards(self.board, moves, player)
-        if boards == None:
-            #print('game already_over'
+        if moves == False:
             return
+        boards = _get_boards(self.board, moves, player)
+
         picked_board = self.player[player].make_good_move(boards,self.board,moves)
 
         #import pdb; pdb.set_trace()
@@ -305,7 +323,7 @@ class Reversi(object):
         
         
     def _game_over(self):
-        #import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         #print('game over')
         players, new_board = np.unique(self.board.flatten(),return_inverse=True)
         score = np.bincount(new_board)
@@ -371,25 +389,27 @@ def addData(number_of_games,file):
             game = Reversi(player2.change_player(1), player1.change_player(-1))
             players = [str(player2),str(player1)]
         results = game.play_game()
-        table = pd.DataFrame(results['states'],columns=headers)
-        table['first'] = results['score'][1] 
-        table['second'] = results['score'][-1] 
-#        win_loss = {-1:results['score'][-1],
-#                    1:results['score'][1]}   
-        win_loss = table.loc[0,['first','second']]
-        win_loss['first_win'] = win_loss['first'] > win_loss['second']
-        win_loss = win_loss.to_frame().T
-        if win_loss['first_win'].iat[0] == 1:
-            win_loss['winner'] = players[0]
-            win_loss['loser'] = players[1]
-        if win_loss['first_win'].iat[0] == 0:
-            win_loss['winner'] = players[1]
-            win_loss['loser'] = players[0]
-        with open('data1.csv', 'a') as f:
-            
-            table.to_csv(f,index=False,header=False)
-        with open ('win_loss2.csv', 'a') as f:
-            win_loss.to_csv(f,index=False, header=False)
+        addResults(results)
+
+
+def addResults(results):
+    table = pd.DataFrame(results['states'],columns=headers)
+    table['first'] = results['score'][1] 
+    table['second'] = results['score'][-1] 
+    win_loss = table.loc[0,['first','second']]
+    win_loss['first_win'] = win_loss['first'] > win_loss['second']
+    win_loss = win_loss.to_frame().T
+    if win_loss['first_win'].iat[0] == 1:
+        win_loss['winner'] = players[0]
+        win_loss['loser'] = players[1]
+    if win_loss['first_win'].iat[0] == 0:
+        win_loss['winner'] = players[1]
+        win_loss['loser'] = players[0]
+    with open('data1.csv', 'a') as f:
+        
+        table.to_csv(f,index=False,header=False)
+    with open ('win_loss2.csv', 'a') as f:
+        win_loss.to_csv(f,index=False, header=False)
 
 
 def sim(x):      
@@ -411,24 +431,8 @@ def PlayRF():
         game = Reversi(player2.change_player(1), player1.change_player(-1))
         players = [str(player2),str(player1)]
     results = game.play_game()
-    #print(results)
-    table = pd.DataFrame(results['states'],columns=headers)
-    table['first'] = results['score'][1] 
-    table['second'] = results['score'][-1] 
-    win_loss = table.loc[0,['first','second']]
-    win_loss['first_win'] = win_loss['first'] > win_loss['second']
-    win_loss = win_loss.to_frame().T
-    if win_loss['first_win'].iat[0] == 1:
-        win_loss['winner'] = players[0]
-        win_loss['loser'] = players[1]
-    if win_loss['first_win'].iat[0] == 0:
-        win_loss['winner'] = players[1]
-        win_loss['loser'] = players[0]
-    with open('data1.csv', 'a') as f:
-        
-        table.to_csv(f,index=False,header=False)
-    with open ('win_loss2.csv', 'a') as f:
-        win_loss.to_csv(f,index=False, header=False)
+    addResults(results)
+
     
 def PlayPara(number_workers, number_series):
     pool = Pool()
